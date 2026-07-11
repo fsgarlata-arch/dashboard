@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dashboard">
+<title>Dashboard</title>
+<style>
+  :root {
+    --bg: #F5F5F7;
+    --text: #1D1D1F;
+    --text-secondary: #6E6E73;
+    --card: rgba(255,255,255,0.72);
+    --card-border: rgba(0,0,0,0.05);
+    --accent: #0A84FF;
+    --divider: rgba(0,0,0,0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000;
+      --text: #F5F5F7;
+      --text-secondary: #98989D;
+      --card: rgba(28,28,30,0.72);
+      --card-border: rgba(255,255,255,0.06);
+      --divider: rgba(255,255,255,0.1);
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .layout {
+    height: 100vh;
+    height: 100dvh;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    gap: 20px;
+    padding: max(24px, env(safe-area-inset-top)) 32px max(24px, env(safe-area-inset-bottom));
+  }
+  .top {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 32px;
+    min-height: 0;
+  }
+
+  /* ---------- Clock hero ---------- */
+  .hero { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+  .date {
+    font-size: clamp(18px, 2.4vw, 26px);
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-transform: capitalize;
+  }
+  .clock {
+    font-size: clamp(96px, 15vw, 210px);
+    font-weight: 200;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .clock .colon { animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+  @media (prefers-reduced-motion: reduce) { .clock .colon { animation: none; } }
+
+  .now-weather { display: flex; align-items: center; gap: 14px; margin-top: 14px; }
+  .now-weather .icon { font-size: clamp(30px, 4vw, 44px); line-height: 1; }
+  .now-temp { font-size: clamp(34px, 5vw, 56px); font-weight: 300; font-variant-numeric: tabular-nums; }
+  .now-meta { display: flex; flex-direction: column; }
+  .now-cond { font-size: clamp(15px, 1.8vw, 19px); font-weight: 500; }
+  .now-place { font-size: clamp(13px, 1.5vw, 15px); color: var(--text-secondary); }
+
+  .world-clock { display: flex; align-items: baseline; gap: 12px; margin-top: 2px; }
+  .world-clock .city {
+    font-size: clamp(13px, 1.6vw, 16px);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+  }
+  .world-clock .t {
+    font-size: clamp(24px, 3.2vw, 40px);
+    font-weight: 300;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+  }
+
+  /* ---------- Cards ---------- */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 22px;
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    padding: 20px 22px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+  }
+
+  /* ---------- Events ---------- */
+  .events { display: flex; flex-direction: column; min-height: 0; }
+  .events-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .events-head .card-title { flex: 1; }
+  .btn-icon {
+    width: 30px; height: 30px;
+    border: none; border-radius: 50%;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 18px; line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .btn-add { background: var(--accent); color: #fff; font-size: 20px; }
+  .event-list { list-style: none; overflow-y: auto; flex: 1; }
+  .event {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 2px;
+    border-bottom: 1px solid var(--divider);
+    font-size: clamp(15px, 1.9vw, 18px);
+  }
+  .event:last-child { border-bottom: none; }
+  .event .time {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--accent);
+    min-width: 58px;
+    font-size: 0.92em;
+  }
+  .event .title { flex: 1; }
+  .event.done .title { text-decoration: line-through; color: var(--text-secondary); }
+  .event.done .time { color: var(--text-secondary); }
+  .event .del {
+    border: none; background: none;
+    color: var(--text-secondary);
+    font-size: 16px; cursor: pointer;
+    padding: 4px 6px;
+    opacity: 0.55;
+  }
+  .empty, .hint {
+    color: var(--text-secondary);
+    font-size: 15px;
+    padding: 20px 0;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .sync-status {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: right;
+    margin-top: 6px;
+  }
+
+  /* ---------- Sheets ---------- */
+  .sheet-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.3);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 10;
+  }
+  .sheet-backdrop.open { display: flex; }
+  .sheet {
+    background: var(--card);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border-radius: 20px;
+    padding: 26px;
+    width: min(460px, 92vw);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  }
+  .sheet h2 { font-size: 19px; font-weight: 600; margin-bottom: 8px; }
+  .sheet p.help { font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px; }
+  .sheet input, .sheet select {
+    width: 100%;
+    font: inherit; font-size: 16px;
+    padding: 12px 14px;
+    border: 1px solid var(--divider);
+    border-radius: 12px;
+    background: var(--bg);
+    color: var(--text);
+    margin-bottom: 12px;
+    outline: none;
+  }
+  .sheet input:focus { border-color: var(--accent); }
+  .sheet-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
+  .sheet-actions button {
+    font: inherit; font-size: 16px; font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: none; cursor: pointer;
+  }
+  .btn-cancel { background: transparent; color: var(--accent); }
+  .btn-save { background: var(--accent); color: #fff; }
+
+  /* ---------- Forecast ---------- */
+  .forecast { display: grid; grid-template-columns: 1.4fr 1fr; gap: 32px; align-items: start; }
+  .weather-error {
+    grid-column: 1 / -1;
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .hourly-row {
+    display: flex; gap: 6px;
+    overflow-x: auto;
+    margin-top: 12px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .hourly-row::-webkit-scrollbar { display: none; }
+  .hour {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    min-width: 58px;
+    font-size: 14px;
+  }
+  .hour .h { color: var(--text-secondary); font-weight: 500; }
+  .hour .i { font-size: 22px; }
+  .hour .t { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .daily-list { margin-top: 12px; }
+  .day-row {
+    display: grid;
+    grid-template-columns: 1fr 34px 48px 48px;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 0;
+    font-size: 15px;
+    border-bottom: 1px solid var(--divider);
+  }
+  .day-row:last-child { border-bottom: none; }
+  .day-row .d { text-transform: capitalize; font-weight: 500; }
+  .day-row .i { text-align: center; font-size: 19px; }
+  .day-row .min { color: var(--text-secondary); text-align: right; font-variant-numeric: tabular-nums; }
+  .day-row .max { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+
+  @media (orientation: portrait) {
+    .top { grid-template-columns: 1fr; }
+    .forecast { grid-template-columns: 1fr; }
+    .clock { font-size: clamp(80px, 22vw, 160px); }
+    body { overflow-y: auto; }
+    .layout { height: auto; min-height: 100dvh; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <div class="top">
+    <div class="hero">
+      <div class="date" id="date"></div>
+      <div class="clock" id="clock"></div>
+      <div class="world-clock">
+        <span class="city" id="worldCity">Dubai</span>
+        <span class="t" id="worldTime"></span>
+      </div>
+      <div class="now-weather" id="nowWeather" style="visibility:hidden">
+        <span class="icon" id="nowIcon"></span>
+        <span class="now-temp" id="nowTemp"></span>
+        <span class="now-meta">
+          <span class="now-cond" id="nowCond"></span>
+          <span class="now-place">Calcinate del Pesce · Varese</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="card events">
+      <div class="events-head">
+        <span class="card-title">Oggi</span>
+        <button class="btn-icon" id="btnSettings" aria-label="Impostazioni calendario">⚙︎</button>
+        <button class="btn-icon btn-add" id="btnAdd" aria-label="Aggiungi impegno">＋</button>
+      </div>
+      <ul class="event-list" id="eventList"></ul>
+      <div class="sync-status" id="syncStatus"></div>
+    </div>
+  </div>
+
+  <div class="card forecast" id="forecastCard">
+    <div>
+      <span class="card-title">Prossime ore</span>
+      <div class="hourly-row" id="hourly"></div>
+    </div>
+    <div>
+      <span class="card-title">Prossimi giorni</span>
+      <div class="daily-list" id="daily"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add event sheet -->
+<div class="sheet-backdrop" id="addBackdrop">
+  <div class="sheet">
+    <h2>Nuovo impegno</h2>
+    <input type="text" id="inTitle" placeholder="Titolo" autocomplete="off">
+    <input type="time" id="inTime">
+    <div class="sheet-actions">
+      <button class="btn-cancel" data-close="addBackdrop">Annulla</button>
+      <button class="btn-save" id="btnSave">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings sheet -->
+<div class="sheet-backdrop" id="setBackdrop">
+  <div class="sheet">
+    <h2>Impostazioni</h2>
+    <p class="help"><strong>Calendario Apple</strong> — sull'iPad o iPhone: app <strong>Calendario</strong> → tocca <strong>Calendari</strong> → ⓘ accanto al calendario → attiva <strong>Calendario pubblico</strong> → <strong>Condividi link</strong> e incollalo qui (inizia con webcal://).</p>
+    <input type="url" id="inCalUrl" placeholder="webcal://p12-caldav.icloud.com/published/2/…" autocomplete="off" autocapitalize="off">
+    <p class="help" style="margin-bottom:8px"><strong>Orologio mondiale</strong></p>
+    <select id="inWorldTz">
+      <option value="Dubai|Asia/Dubai">Dubai</option>
+      <option value="Londra|Europe/London">Londra</option>
+      <option value="Zurigo|Europe/Zurich">Zurigo</option>
+      <option value="New York|America/New_York">New York</option>
+      <option value="Los Angeles|America/Los_Angeles">Los Angeles</option>
+      <option value="San Paolo|America/Sao_Paulo">San Paolo</option>
+      <option value="Tokyo|Asia/Tokyo">Tokyo</option>
+      <option value="Singapore|Asia/Singapore">Singapore</option>
+      <option value="Hong Kong|Asia/Hong_Kong">Hong Kong</option>
+      <option value="Sydney|Australia/Sydney">Sydney</option>
+    </select>
+    <div class="sheet-actions">
+      <button class="btn-cancel" data-close="setBackdrop">Annulla</button>
+      <button class="btn-save" id="btnSaveCal">Salva</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ Storage adapter ============ */
+const mem = {};
+const store = {
+  async get(key) {
+    if (window.storage) {
+      try { const r = await window.storage.get(key); return r ? r.value : null; }
+      catch (e) { return null; }
+    }
+    try { return localStorage.getItem(key); } catch (e) { return mem[key] !== undefined ? mem[key] : null; }
+  },
+  async set(key, val) {
+    if (window.storage) {
+      try { await window.storage.set(key, val); return; } catch (e) { return; }
+    }
+    try { localStorage.setItem(key, val); } catch (e) { mem[key] = val; }
+  }
+};
+
+/* ============ Clock & date ============ */
+const clockEl = document.getElementById('clock');
+const dateEl = document.getElementById('date');
+let worldCity = 'Dubai';
+let worldTz = 'Asia/Dubai';
+function tick() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  clockEl.innerHTML = hh + '<span class="colon">:</span>' + mm;
+  dateEl.textContent = now.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+  try {
+    document.getElementById('worldTime').textContent =
+      now.toLocaleTimeString('it-IT', { timeZone: worldTz, hour: '2-digit', minute: '2-digit' });
+  } catch (e) { /* fuso non riconosciuto */ }
+}
+tick();
+setInterval(tick, 1000);
+
+/* ============ Helpers ============ */
+function todayKey() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function startOfDay(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+function sameDay(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ============ ICS parsing (Apple / iCloud public calendar) ============ */
+function unfoldICS(text) {
+  return text.replace(/\r\n/g, '\n').replace(/\n[ \t]/g, '');
+}
+function parseICSDate(val, params) {
+  params = params || '';
+  if (params.indexOf('VALUE=DATE') !== -1 || /^\d{8}$/.test(val)) {
+    return { date: new Date(+val.slice(0,4), +val.slice(4,6)-1, +val.slice(6,8)), allDay: true };
+  }
+  if (val.charAt(val.length - 1) === 'Z') {
+    return { date: new Date(Date.UTC(+val.slice(0,4), +val.slice(4,6)-1, +val.slice(6,8), +val.slice(9,11), +val.slice(11,13), +(val.slice(13,15) || 0))), allDay: false };
+  }
+  /* TZID or floating: treated as local time (ok in Italy) */
+  return { date: new Date(+val.slice(0,4), +val.slice(4,6)-1, +val.slice(6,8), +val.slice(9,11), +val.slice(11,13)), allDay: false };
+}
+function parseICS(text) {
+  const lines = unfoldICS(text).split('\n');
+  const events = [];
+  let cur = null;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line === 'BEGIN:VEVENT') { cur = { exdates: [] }; continue; }
+    if (line === 'END:VEVENT') { if (cur && cur.start) events.push(cur); cur = null; continue; }
+    if (!cur) continue;
+    const colon = line.indexOf(':');
+    if (colon < 0) continue;
+    const left = line.slice(0, colon);
+    const val = line.slice(colon + 1);
+    const semi = left.indexOf(';');
+    const prop = semi < 0 ? left : left.slice(0, semi);
+    const params = semi < 0 ? '' : left.slice(semi + 1);
+    if (prop === 'DTSTART') {
+      const p = parseICSDate(val, params);
+      cur.start = p.date; cur.allDay = p.allDay;
+    } else if (prop === 'SUMMARY') {
+      cur.title = val.replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\n/g, ' ').replace(/\\\\/g, '\\');
+    } else if (prop === 'RRULE') {
+      cur.rrule = val;
+    } else if (prop === 'EXDATE') {
+      val.split(',').forEach(function(v) { cur.exdates.push(parseICSDate(v, params).date); });
+    } else if (prop === 'STATUS') {
+      cur.status = val;
+    }
+  }
+  return events;
+}
+function parseRRule(str) {
+  const r = {};
+  str.split(';').forEach(function(part) {
+    const eq = part.indexOf('=');
+    if (eq > 0) r[part.slice(0, eq)] = part.slice(eq + 1);
+  });
+  return r;
+}
+const DAYCODES = ['SU','MO','TU','WE','TH','FR','SA'];
+function occursToday(ev, today) {
+  if (ev.status === 'CANCELLED') return false;
+  if (!ev.rrule) return sameDay(ev.start, today);
+  if (startOfDay(ev.start) > today) return false;
+  const r = parseRRule(ev.rrule);
+  if (r.UNTIL) {
+    const u = parseICSDate(r.UNTIL, '').date;
+    if (startOfDay(today) > u) return false;
+  }
+  const interval = parseInt(r.INTERVAL || '1', 10);
+  const diffDays = Math.round((startOfDay(today) - startOfDay(ev.start)) / 86400000);
+  if (diffDays < 0) return false;
+  let match = false;
+  if (r.FREQ === 'DAILY') {
+    match = diffDays % interval === 0;
+  } else if (r.FREQ === 'WEEKLY') {
+    const days = r.BYDAY ? r.BYDAY.split(',').map(function(d){ return d.replace(/^[+-]?\d+/, ''); }) : [DAYCODES[ev.start.getDay()]];
+    match = days.indexOf(DAYCODES[today.getDay()]) !== -1 && Math.floor(diffDays / 7) % interval === 0;
+  } else if (r.FREQ === 'MONTHLY') {
+    match = today.getDate() === ev.start.getDate();
+  } else if (r.FREQ === 'YEARLY') {
+    match = today.getDate() === ev.start.getDate() && today.getMonth() === ev.start.getMonth();
+  }
+  if (!match) return false;
+  for (let i = 0; i < ev.exdates.length; i++) {
+    if (sameDay(ev.exdates[i], today)) return false;
+  }
+  return true;
+}
+
+/* ============ Events (Apple Calendar sync + manual extras) ============ */
+let calEvents = [];   /* from iCloud */
+let manualEvents = []; /* added by hand */
+let doneSet = {};      /* ids marked done today */
+let loadedFor = null;
+let calUrl = null;
+const syncStatusEl = document.getElementById('syncStatus');
+
+async function fetchICS(url) {
+  url = url.trim().replace(/^webcal:/i, 'https:');
+  try {
+    const r = await fetch(url);
+    if (r.ok) return await r.text();
+  } catch (e) { /* CORS blocked: try proxy */ }
+  const prox = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+  const r2 = await fetch(prox);
+  if (!r2.ok) throw new Error('HTTP ' + r2.status);
+  return await r2.text();
+}
+
+async function syncCalendar() {
+  if (!calUrl) { renderEvents(); return; }
+  syncStatusEl.textContent = 'Sincronizzo…';
+  try {
+    const ics = await fetchICS(calUrl);
+    const all = parseICS(ics);
+    const today = startOfDay(new Date());
+    calEvents = all.filter(function(ev) { return occursToday(ev, today); })
+      .map(function(ev, idx) {
+        return {
+          id: 'cal-' + idx + '-' + ev.title,
+          time: ev.allDay ? 'giorno' : String(ev.start.getHours()).padStart(2,'0') + ':' + String(ev.start.getMinutes()).padStart(2,'0'),
+          sortKey: ev.allDay ? '00:00' : String(ev.start.getHours()).padStart(2,'0') + ':' + String(ev.start.getMinutes()).padStart(2,'0'),
+          title: ev.title || '(senza titolo)',
+          fromCal: true
+        };
+      });
+    const n = new Date();
+    syncStatusEl.textContent = 'Calendario aggiornato ' + String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+  } catch (e) {
+    syncStatusEl.textContent = 'Sincronizzazione non riuscita';
+  }
+  renderEvents();
+}
+
+async function loadEvents() {
+  loadedFor = todayKey();
+  const raw = await store.get('manual:' + loadedFor);
+  manualEvents = raw ? JSON.parse(raw) : [];
+  const rawDone = await store.get('done:' + loadedFor);
+  doneSet = rawDone ? JSON.parse(rawDone) : {};
+  calUrl = await store.get('calUrl');
+  const wc = await store.get('worldClock');
+  if (wc && wc.indexOf('|') > 0) {
+    worldCity = wc.split('|')[0];
+    worldTz = wc.split('|')[1];
+    document.getElementById('worldCity').textContent = worldCity;
+    tick();
+  }
+  renderEvents();
+  syncCalendar();
+}
+async function saveManual() { await store.set('manual:' + loadedFor, JSON.stringify(manualEvents)); }
+async function saveDone() { await store.set('done:' + loadedFor, JSON.stringify(doneSet)); }
+
+function renderEvents() {
+  const list = document.getElementById('eventList');
+  const merged = calEvents.concat(manualEvents.map(function(e, i) {
+    return { id: 'man-' + i, time: e.time, sortKey: e.time, title: e.title, fromCal: false, manIndex: i };
+  }));
+  if (!merged.length) {
+    list.innerHTML = calUrl
+      ? '<li class="empty">Nessun impegno per oggi</li>'
+      : '<li class="hint">Tocca ⚙︎ per collegare il tuo Calendario Apple<br>oppure ＋ per aggiungere un impegno</li>';
+    return;
+  }
+  merged.sort(function(a, b) { return a.sortKey.localeCompare(b.sortKey); });
+  list.innerHTML = merged.map(function(e) {
+    const done = doneSet[e.id];
+    return '<li class="event' + (done ? ' done' : '') + '" data-id="' + escapeHtml(e.id) + '" data-man="' + (e.fromCal ? '' : e.manIndex) + '">' +
+      '<span class="time">' + escapeHtml(e.time) + '</span>' +
+      '<span class="title">' + escapeHtml(e.title) + '</span>' +
+      (e.fromCal ? '' : '<button class="del" aria-label="Elimina">✕</button>') +
+    '</li>';
+  }).join('');
+}
+document.getElementById('eventList').addEventListener('click', async function(ev) {
+  const li = ev.target.closest('.event');
+  if (!li) return;
+  if (ev.target.classList.contains('del')) {
+    manualEvents.splice(Number(li.dataset.man), 1);
+    renderEvents();
+    await saveManual();
+    return;
+  }
+  const id = li.dataset.id;
+  if (doneSet[id]) delete doneSet[id]; else doneSet[id] = true;
+  renderEvents();
+  await saveDone();
+});
+
+/* Sheets */
+function openSheet(id) { document.getElementById(id).classList.add('open'); }
+function closeSheet(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('[data-close]').forEach(function(b) {
+  b.addEventListener('click', function() { closeSheet(b.dataset.close); });
+});
+document.querySelectorAll('.sheet-backdrop').forEach(function(bd) {
+  bd.addEventListener('click', function(e) { if (e.target === bd) bd.classList.remove('open'); });
+});
+document.getElementById('btnAdd').addEventListener('click', function() {
+  document.getElementById('inTitle').value = '';
+  const n = new Date();
+  document.getElementById('inTime').value = String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+  openSheet('addBackdrop');
+  setTimeout(function() { document.getElementById('inTitle').focus(); }, 50);
+});
+document.getElementById('btnSave').addEventListener('click', async function() {
+  const title = document.getElementById('inTitle').value.trim();
+  const time = document.getElementById('inTime').value || '00:00';
+  if (!title) return;
+  manualEvents.push({ time: time, title: title });
+  renderEvents();
+  await saveManual();
+  closeSheet('addBackdrop');
+});
+document.getElementById('btnSettings').addEventListener('click', function() {
+  document.getElementById('inCalUrl').value = calUrl || '';
+  document.getElementById('inWorldTz').value = worldCity + '|' + worldTz;
+  openSheet('setBackdrop');
+});
+document.getElementById('btnSaveCal').addEventListener('click', async function() {
+  calUrl = document.getElementById('inCalUrl').value.trim() || null;
+  await store.set('calUrl', calUrl || '');
+  const wc = document.getElementById('inWorldTz').value;
+  if (wc && wc.indexOf('|') > 0) {
+    worldCity = wc.split('|')[0];
+    worldTz = wc.split('|')[1];
+    document.getElementById('worldCity').textContent = worldCity;
+    await store.set('worldClock', wc);
+    tick();
+  }
+  closeSheet('setBackdrop');
+  syncCalendar();
+});
+
+/* Midnight reset + periodic sync */
+setInterval(function() { if (todayKey() !== loadedFor) loadEvents(); }, 60000);
+setInterval(syncCalendar, 10 * 60 * 1000);
+loadEvents();
+
+/* ============ Weather (Open-Meteo) ============ */
+const LAT = 45.797, LON = 8.756; /* Calcinate del Pesce, Varese */
+const WMO = {
+  0:  ['Sereno', '\u2600\uFE0F', '\uD83C\uDF19'],
+  1:  ['Prevalentemente sereno', '\uD83C\uDF24\uFE0F', '\uD83C\uDF19'],
+  2:  ['Parzialmente nuvoloso', '\u26C5\uFE0F', '\u2601\uFE0F'],
+  3:  ['Nuvoloso', '\u2601\uFE0F', '\u2601\uFE0F'],
+  45: ['Nebbia', '\uD83C\uDF2B\uFE0F', '\uD83C\uDF2B\uFE0F'], 48: ['Nebbia', '\uD83C\uDF2B\uFE0F', '\uD83C\uDF2B\uFE0F'],
+  51: ['Pioviggine', '\uD83C\uDF26\uFE0F', '\uD83C\uDF27\uFE0F'], 53: ['Pioviggine', '\uD83C\uDF26\uFE0F', '\uD83C\uDF27\uFE0F'], 55: ['Pioviggine', '\uD83C\uDF27\uFE0F', '\uD83C\uDF27\uFE0F'],
+  61: ['Pioggia leggera', '\uD83C\uDF26\uFE0F', '\uD83C\uDF27\uFE0F'], 63: ['Pioggia', '\uD83C\uDF27\uFE0F', '\uD83C\uDF27\uFE0F'], 65: ['Pioggia forte', '\uD83C\uDF27\uFE0F', '\uD83C\uDF27\uFE0F'],
+  66: ['Pioggia gelata', '\uD83C\uDF27\uFE0F', '\uD83C\uDF27\uFE0F'], 67: ['Pioggia gelata', '\uD83C\uDF27\uFE0F', '\uD83C\uDF27\uFE0F'],
+  71: ['Neve leggera', '\uD83C\uDF28\uFE0F', '\uD83C\uDF28\uFE0F'], 73: ['Neve', '\uD83C\uDF28\uFE0F', '\uD83C\uDF28\uFE0F'], 75: ['Neve forte', '\u2744\uFE0F', '\u2744\uFE0F'],
+  77: ['Nevischio', '\uD83C\uDF28\uFE0F', '\uD83C\uDF28\uFE0F'],
+  80: ['Rovesci', '\uD83C\uDF26\uFE0F', '\uD83C\uDF27\uFE0F'], 81: ['Rovesci', '\uD83C\uDF27\uFE0F', '\uD83C\uDF27\uFE0F'], 82: ['Rovesci intensi', '\uD83C\uDF27\uFE0F', '\uD83C\uDF27\uFE0F'],
+  85: ['Rovesci di neve', '\uD83C\uDF28\uFE0F', '\uD83C\uDF28\uFE0F'], 86: ['Rovesci di neve', '\u2744\uFE0F', '\u2744\uFE0F'],
+  95: ['Temporale', '\u26C8\uFE0F', '\u26C8\uFE0F'], 96: ['Temporale con grandine', '\u26C8\uFE0F', '\u26C8\uFE0F'], 99: ['Temporale con grandine', '\u26C8\uFE0F', '\u26C8\uFE0F']
+};
+function wmo(code, isDay) {
+  const w = WMO[code] || ['\u2014', '\u2601\uFE0F', '\u2601\uFE0F'];
+  return { label: w[0], icon: (isDay === undefined || isDay) ? w[1] : w[2] };
+}
+async function loadWeather() {
+  try {
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LON +
+      '&current=temperature_2m,weather_code,is_day' +
+      '&hourly=temperature_2m,weather_code,is_day' +
+      '&daily=weather_code,temperature_2m_max,temperature_2m_min' +
+      '&forecast_days=7&timezone=Europe%2FRome';
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+
+    const cur = wmo(d.current.weather_code, d.current.is_day);
+    document.getElementById('nowIcon').textContent = cur.icon;
+    document.getElementById('nowTemp').textContent = Math.round(d.current.temperature_2m) + '\u00B0';
+    document.getElementById('nowCond').textContent = cur.label;
+    document.getElementById('nowWeather').style.visibility = 'visible';
+
+    const nowIso = d.current.time.slice(0, 13);
+    let start = -1;
+    for (let i = 0; i < d.hourly.time.length; i++) {
+      if (d.hourly.time[i].slice(0, 13) >= nowIso) { start = i; break; }
+    }
+    if (start < 0) start = 0;
+    let hourlyHtml = '';
+    for (let i = start; i < Math.min(start + 10, d.hourly.time.length); i++) {
+      const w = wmo(d.hourly.weather_code[i], d.hourly.is_day[i]);
+      const h = d.hourly.time[i].slice(11, 13);
+      hourlyHtml += '<div class="hour"><span class="h">' + (i === start ? 'Ora' : h) + '</span>' +
+        '<span class="i">' + w.icon + '</span>' +
+        '<span class="t">' + Math.round(d.hourly.temperature_2m[i]) + '\u00B0</span></div>';
+    }
+    document.getElementById('hourly').innerHTML = hourlyHtml;
+
+    let dailyHtml = '';
+    for (let i = 1; i < Math.min(7, d.daily.time.length); i++) {
+      const w = wmo(d.daily.weather_code[i]);
+      const day = new Date(d.daily.time[i] + 'T12:00:00')
+        .toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric' });
+      dailyHtml += '<div class="day-row"><span class="d">' + day + '</span>' +
+        '<span class="i">' + w.icon + '</span>' +
+        '<span class="min">' + Math.round(d.daily.temperature_2m_min[i]) + '\u00B0</span>' +
+        '<span class="max">' + Math.round(d.daily.temperature_2m_max[i]) + '\u00B0</span></div>';
+    }
+    document.getElementById('daily').innerHTML = dailyHtml;
+  } catch (e) {
+    document.getElementById('nowCond').textContent = 'Meteo non disponibile';
+    document.getElementById('nowWeather').style.visibility = 'visible';
+    document.getElementById('forecastCard').innerHTML =
+      '<div class="weather-error">Impossibile raggiungere il servizio meteo (' + escapeHtml(e.message || 'rete bloccata') + ').<br>' +
+      'Nota: nell\u2019anteprima dentro Claude le richieste esterne sono bloccate \u2014 apri il file in Safari per vedere il meteo reale.</div>';
+  }
+}
+loadWeather();
+setInterval(loadWeather, 15 * 60 * 1000);
+</script>
+</body>
+</html>
